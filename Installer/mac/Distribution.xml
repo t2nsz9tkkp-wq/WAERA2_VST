@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="1">
+    <pkg-ref id="com.blitzaudio.blitznpc.vst3"/>
+    <pkg-ref id="com.blitzaudio.blitznpc.assets"/>
+    <options customize="never" require-scripts="false" hostArchitectures="x86_64,arm64"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="com.blitzaudio.blitznpc.vst3"/>
+            <line choice="com.blitzaudio.blitznpc.assets"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="com.blitzaudio.blitznpc.vst3" visible="false">
+        <pkg-ref id="com.blitzaudio.blitznpc.vst3"/>
+    </choice>
+    <pkg-ref id="com.blitzaudio.blitznpc.vst3" version="2.0.0" onConclusion="none">vst3.pkg</pkg-ref>
+    <choice id="com.blitzaudio.blitznpc.assets" visible="false">
+        <pkg-ref id="com.blitzaudio.blitznpc.assets"/>
+    </choice>
+    <pkg-ref id="com.blitzaudio.blitznpc.assets" version="2.0.0" onConclusion="none">assets.pkg</pkg-ref>
+</installer-gui-script>

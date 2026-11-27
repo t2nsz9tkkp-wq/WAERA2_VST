@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PARAMETERS>
+  <PARAM id="master" value="0.75"/>
+  <PARAM id="oscA_wave" value="1"/>
+  <PARAM id="oscB_wave" value="0"/>
+  <PARAM id="oscC_wave" value="3"/>
+  <PARAM id="oscA_oct" value="0"/>
+  <PARAM id="oscB_oct" value="2"/>
+  <PARAM id="oscC_oct" value="0"/>
+  <PARAM id="oscA_detune" value="20.021"/>
+  <PARAM id="oscB_semi" value="12"/>
+  <PARAM id="oscA_lvl" value="0.713"/>
+  <PARAM id="oscB_lvl" value="0.563"/>
+  <PARAM id="oscC_lvl" value="0.467"/>
+  <PARAM id="cutoff" value="11266.305"/>
+  <PARAM id="reso" value="4.434"/>
+  <PARAM id="envAmt" value="4538.368"/>
+  <PARAM id="att" value="0.01"/>
+  <PARAM id="dec" value="0.394"/>
+  <PARAM id="sus" value="0.753"/>
+  <PARAM id="rel" value="0.041"/>
+  <PARAM id="diode" value="33.642"/>
+  <PARAM id="pitchEnv" value="0"/>
+  <PARAM id="delayMix" value="0.197"/>
+  <PARAM id="glide" value="0.05"/>
+</PARAMETERS>

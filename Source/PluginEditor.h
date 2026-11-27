@@ -18,7 +18,7 @@ public:
 
 class WaveformDisplay : public juce::Component, public juce::FileDragAndDropTarget, private juce::Timer {
 public:
-    WaveformDisplay(WaeraAudioProcessor& proc, int oscIndex, const juce::String& onID, const juce::String& waveID, const juce::String& posID, SkinTheme& themeRef);
+    WaveformDisplay(BlitzAudioProcessor& proc, int oscIndex, const juce::String& onID, const juce::String& waveID, const juce::String& posID, SkinTheme& themeRef);
     std::function<void()> onSampleDropped;
     bool isInterestedInFileDrag(const juce::StringArray& files) override { return files.size() > 0 && files[0].endsWithIgnoreCase(".wav"); }
     void filesDropped(const juce::StringArray& files, int, int) override {
@@ -35,7 +35,7 @@ public:
     void paint(juce::Graphics& g) override;
     void timerCallback() override { repaint(); }
 private:
-    WaeraAudioProcessor& processor;
+    BlitzAudioProcessor& processor;
     int oscIdx;
     juce::String onParamID, paramID, wtPosID;
     SkinTheme& theme;
@@ -134,15 +134,15 @@ private:
     SkinTheme& theme;
 };
 
-class WaeraAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::DragAndDropContainer, private juce::Timer {
+class BlitzAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::DragAndDropContainer, private juce::Timer {
 public:
-    WaeraAudioProcessorEditor(WaeraAudioProcessor&);
-    ~WaeraAudioProcessorEditor() override;
+    BlitzAudioProcessorEditor(BlitzAudioProcessor&);
+    ~BlitzAudioProcessorEditor() override;
     void paint(juce::Graphics&) override;
     void resized() override;
     void timerCallback() override;
 private:
-    WaeraAudioProcessor& audioProcessor;
+    BlitzAudioProcessor& audioProcessor;
     SerumLookAndFeel serumLAF;
     int activeTab = 0;
 
@@ -192,5 +192,5 @@ private:
     void refreshBanksAndSkins();
     void refreshPresetsForCurrentBank(bool loadFirst = false);
     void applySkinFile(const juce::File& skinFile);
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaeraAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BlitzAudioProcessorEditor)
 };

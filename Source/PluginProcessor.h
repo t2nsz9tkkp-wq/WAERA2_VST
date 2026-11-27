@@ -4,15 +4,15 @@
 #include "WavetableEngine.h"
 #include "ModAndArpEngine.h"
 
-struct WaeraSound : public juce::SynthesiserSound {
+struct BlitzSound : public juce::SynthesiserSound {
     bool appliesToNote(int) override { return true; }
     bool appliesToChannel(int) override { return true; }
 };
 
-class WaeraVoice : public juce::SynthesiserVoice {
+class BlitzVoice : public juce::SynthesiserVoice {
 public:
-    WaeraVoice(juce::AudioProcessorValueTreeState& apvts, WavetableBank& wtBank);
-    bool canPlaySound(juce::SynthesiserSound* s) override { return dynamic_cast<WaeraSound*>(s) != nullptr; }
+    BlitzVoice(juce::AudioProcessorValueTreeState& apvts, WavetableBank& wtBank);
+    bool canPlaySound(juce::SynthesiserSound* s) override { return dynamic_cast<BlitzSound*>(s) != nullptr; }
     void startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound*, int) override;
     void stopNote(float velocity, bool allowTailOff) override;
     void pitchWheelMoved(int) override {}
@@ -35,17 +35,17 @@ private:
     float applyWarp(int mode, float phase, float amount, float modSignal);
 };
 
-class WaeraAudioProcessor : public juce::AudioProcessor {
+class BlitzAudioProcessor : public juce::AudioProcessor {
 public:
-    WaeraAudioProcessor();
-    ~WaeraAudioProcessor() override = default;
+    BlitzAudioProcessor();
+    ~BlitzAudioProcessor() override = default;
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
-    const juce::String getName() const override { return "WAERA-2"; }
+    const juce::String getName() const override { return "Blitz-NPC"; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     double getTailLengthSeconds() const override { return 0.5; }
@@ -62,7 +62,7 @@ public:
     void ensureDefaultAssetsExist();
     void savePresetToFile(const juce::String& bankName, const juce::String& presetName);
     void loadPresetFromFile(const juce::File& presetFile);
-    juce::String currentBankName { "01 - Waera Leads (50)" }, currentPresetName, currentSkinName { "Serum Cyber Cyan" };
+    juce::String currentBankName { "01 - Blitz Leads (50)" }, currentPresetName, currentSkinName { "Serum Cyber Cyan" };
     WavetableBank wavetableBank;
     juce::AudioProcessorValueTreeState apvts;
 private:
@@ -75,5 +75,5 @@ private:
     juce::dsp::IIR::Filter<float> eqLowL, eqLowR, eqMidL, eqMidR, eqHighL, eqHighR;
     float crushHoldL = 0.0f, crushHoldR = 0.0f;
     int crushCounter = 0;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaeraAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BlitzAudioProcessor)
 };

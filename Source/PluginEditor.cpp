@@ -109,7 +109,7 @@ void SerumLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& b
     g.drawText(button.getButtonText(), button.getLocalBounds(), juce::Justification::centred);
 }
 
-WaveformDisplay::WaveformDisplay(WaeraAudioProcessor& proc, int oscIndex, const juce::String& onID, const juce::String& waveID, const juce::String& posID, SkinTheme& themeRef)
+WaveformDisplay::WaveformDisplay(BlitzAudioProcessor& proc, int oscIndex, const juce::String& onID, const juce::String& waveID, const juce::String& posID, SkinTheme& themeRef)
     : processor(proc), oscIdx(oscIndex), onParamID(onID), paramID(waveID), wtPosID(posID), theme(themeRef) {
     setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
     startTimerHz(24);
@@ -269,7 +269,7 @@ fill.lineTo((float)getWidth() - 2.0f, b.getBottom() - 2.0f); fill.closeSubPath()
 g.setColour(theme.accentSecondary.withAlpha(0.18f)); g.fillPath(fill);
 g.setColour(theme.accentSecondary); g.strokePath(p, juce::PathStrokeType(2.0f));
 }
-WaeraAudioProcessorEditor::WaeraAudioProcessorEditor(WaeraAudioProcessor& p)
+BlitzAudioProcessorEditor::BlitzAudioProcessorEditor(BlitzAudioProcessor& p)
 : AudioProcessorEditor(&p), audioProcessor(p),
 scopeA(p, 0, "oscA_on", "oscA_wave", "oscA_wtPos", serumLAF.theme),
 scopeB(p, 1, "oscB_on", "oscB_wave", "oscB_wtPos", serumLAF.theme),
@@ -291,7 +291,7 @@ prevPresetBtn.onClick = [this] { stepPreset(-1); }; nextPresetBtn.onClick = [thi
 presetSelector.onChange = [this] {
     audioProcessor.currentBankName = bankSelector.getText();
     audioProcessor.currentPresetName = presetSelector.getText();
-    auto file = audioProcessor.getRootUserDirectory().getChildFile("Banks").getChildFile(audioProcessor.currentBankName).getChildFile(audioProcessor.currentPresetName + ".waera");
+    auto file = audioProcessor.getRootUserDirectory().getChildFile("Banks").getChildFile(audioProcessor.currentBankName).getChildFile(audioProcessor.currentPresetName + ".blitz");
     if (file.existsAsFile()) { audioProcessor.loadPresetFromFile(file); syncModRings(); }
     auto cfg = audioProcessor.getRootUserDirectory().getChildFile("last_session.txt");
     cfg.replaceWithText(audioProcessor.currentBankName + "\n" + audioProcessor.currentPresetName + "\n" + audioProcessor.currentSkinName);
@@ -305,11 +305,11 @@ skinSelector.onChange = [this] {
 };
 savePresetBtn.onClick = [this] {
 auto userDir = audioProcessor.getRootUserDirectory().getChildFile("Banks").getChildFile("User Custom");
-fileChooser = std::make_unique<juce::FileChooser>("Save Waera Preset (.waera)", userDir.getChildFile("My Waera Patch.waera"), "*.waera");
+fileChooser = std::make_unique<juce::FileChooser>("Save Blitz Preset (.blitz)", userDir.getChildFile("My Blitz Patch.blitz"), "*.blitz");
 fileChooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting,
 [this](const juce::FileChooser& fc) {
 if (fc.getResult() != juce::File()) {
-if (auto xml = audioProcessor.apvts.copyState().createXml()) xml->writeTo(fc.getResult().withFileExtension(".waera"));
+if (auto xml = audioProcessor.apvts.copyState().createXml()) xml->writeTo(fc.getResult().withFileExtension(".blitz"));
 refreshBanksAndSkins();
 }
 });
@@ -400,9 +400,9 @@ switchTab(0);
 startTimerHz(15);
 setSize(1280, 740);
 }
-WaeraAudioProcessorEditor::~WaeraAudioProcessorEditor() { stopTimer(); setLookAndFeel(nullptr); }
-void WaeraAudioProcessorEditor::timerCallback() { syncModRings(); }
-void WaeraAudioProcessorEditor::syncModRings() {
+BlitzAudioProcessorEditor::~BlitzAudioProcessorEditor() { stopTimer(); setLookAndFeel(nullptr); }
+void BlitzAudioProcessorEditor::timerCallback() { syncModRings(); }
+void BlitzAudioProcessorEditor::syncModRings() {
 std::array<float, 8> dstTotals {};
 for (int m = 0; m < 8; ++m) {
 int src = modSrcBoxes[m].getSelectedId() - 1;
@@ -419,7 +419,7 @@ k->slider.repaint();
 }
 }
 }
-void WaeraAudioProcessorEditor::assignModRoute(int srcIdx, int dstIdx) {
+void BlitzAudioProcessorEditor::assignModRoute(int srcIdx, int dstIdx) {
 int targetSlot = -1;
 for (int m = 0; m < 8; ++m) {
 int s = modSrcBoxes[m].getSelectedId() - 1;
@@ -434,7 +434,7 @@ modAmtSliders[targetSlot].setValue(0.55, juce::sendNotificationSync);
 }
 syncModRings();
 }
-void WaeraAudioProcessorEditor::clearModRoute(int dstIdx) {
+void BlitzAudioProcessorEditor::clearModRoute(int dstIdx) {
 for (int m = 0; m < 8; ++m) {
 if (modDstBoxes[m].getSelectedId() - 1 == dstIdx) {
 modSrcBoxes[m].setSelectedId(1, juce::sendNotificationSync);
@@ -444,7 +444,7 @@ modAmtSliders[m].setValue(0.0, juce::sendNotificationSync);
 }
 syncModRings();
 }
-void WaeraAudioProcessorEditor::switchTab(int newTab) {
+void BlitzAudioProcessorEditor::switchTab(int newTab) {
 activeTab = newTab;
 tabOscBtn.getProperties().set("isActiveTab", activeTab == 0);
 tabFxBtn.getProperties().set("isActiveTab", activeTab == 1);
@@ -459,7 +459,7 @@ arpOnBtn.setVisible(t3); arpModeBox.setVisible(t3); arpRateBox.setVisible(t3);
 for (auto& k : knobs) { bool vis = (k->tabPage == activeTab); k->slider.setVisible(vis); k->label.setVisible(vis); }
 repaint();
 }
-void WaeraAudioProcessorEditor::refreshWavetableMenus() {
+void BlitzAudioProcessorEditor::refreshWavetableMenus() {
 juce::StringArray names;
 for (auto& t : audioProcessor.wavetableBank.tables) names.add(t.name);
 for (auto* box : { &oscAWaveBox, &oscBWaveBox, &oscCWaveBox }) {
@@ -467,11 +467,11 @@ int sel = box->getSelectedId(); box->clear(juce::dontSendNotification); box->add
 box->setSelectedId(sel > 0 ? sel : 1, juce::dontSendNotification);
 }
 }
-void WaeraAudioProcessorEditor::stepPreset(int delta) {
+void BlitzAudioProcessorEditor::stepPreset(int delta) {
 int count = presetSelector.getNumItems();
 if (count > 0) presetSelector.setSelectedItemIndex((presetSelector.getSelectedItemIndex() + delta + count) % count, juce::sendNotification);
 }
-void WaeraAudioProcessorEditor::addKnob(int tab, const juce::String& paramID, const juce::String& name, int colorGroup, int modDest) {
+void BlitzAudioProcessorEditor::addKnob(int tab, const juce::String& paramID, const juce::String& name, int colorGroup, int modDest) {
 auto k = std::make_unique<KnobUnit>();
 k->tabPage = tab; k->slider.modDestIndex = modDest;
 k->slider.onModDropped = [this](int s, int d) { assignModRoute(s, d); };
@@ -487,7 +487,7 @@ addChildComponent(k->label);
 k->attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, paramID, k->slider);
 knobs.push_back(std::move(k));
 }
-void WaeraAudioProcessorEditor::refreshBanksAndSkins() {
+void BlitzAudioProcessorEditor::refreshBanksAndSkins() {
     auto root = audioProcessor.getRootUserDirectory();
     auto cfg = root.getChildFile("last_session.txt");
     if (cfg.existsAsFile()) {
@@ -530,11 +530,11 @@ void WaeraAudioProcessorEditor::refreshBanksAndSkins() {
     }
 }
 
-void WaeraAudioProcessorEditor::refreshPresetsForCurrentBank(bool loadFirst) {
+void BlitzAudioProcessorEditor::refreshPresetsForCurrentBank(bool loadFirst) {
     auto prevPreset = loadFirst ? juce::String() : audioProcessor.currentPresetName;
     auto bankDir = audioProcessor.getRootUserDirectory().getChildFile("Banks").getChildFile(bankSelector.getText());
     presetSelector.clear(juce::dontSendNotification);
-    auto files = bankDir.findChildFiles(juce::File::findFiles, false, "*.waera");
+    auto files = bankDir.findChildFiles(juce::File::findFiles, false, "*.blitz");
     files.sort();
     int idx = 1, matchIdx = 1;
     for (auto& f : files) {
@@ -547,7 +547,7 @@ void WaeraAudioProcessorEditor::refreshPresetsForCurrentBank(bool loadFirst) {
     }
 }
 
-void WaeraAudioProcessorEditor::applySkinFile(const juce::File& skinFile) {
+void BlitzAudioProcessorEditor::applySkinFile(const juce::File& skinFile) {
     auto parsed = juce::JSON::parse(skinFile.loadFileAsString());
     if (auto* obj = parsed.getDynamicObject()) {
         auto readCol = [&](const juce::String& k, juce::Colour fb) {
@@ -582,14 +582,14 @@ void WaeraAudioProcessorEditor::applySkinFile(const juce::File& skinFile) {
     }
 }
 
-void WaeraAudioProcessorEditor::paint(juce::Graphics& g) {
+void BlitzAudioProcessorEditor::paint(juce::Graphics& g) {
 auto& t = serumLAF.theme;
 g.fillAll(t.bgDark);
 juce::ColourGradient hdrGrad(t.panelBg.brighter(0.16f), 0.0f, 0.0f, t.bgDark.darker(0.35f), 0.0f, 88.0f, false);
 g.setGradientFill(hdrGrad); g.fillRect(0, 0, getWidth(), 88);
 g.setColour(t.panelBorder); g.drawHorizontalLine(88, 0.0f, (float)getWidth());
         g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
-g.drawText("WAERA-2", 18, 10, 125, 28, juce::Justification::centredLeft);
+g.drawText("Blitz-NPC", 18, 10, 125, 28, juce::Justification::centredLeft);
     g.setColour(t.textMain.withAlpha(0.55f)); g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
 g.drawText("DRAG MOD BADGES -> KNOBS (R-CLICK CLEAR)", 565, 52, 235, 22, juce::Justification::centredRight);
 auto drawPanel = [&](juce::Rectangle<int> r, const juce::String& title, juce::Colour badgeCol) {
@@ -627,7 +627,7 @@ drawPanel({ 14, 98, 616, 628 }, "16-STEP DIGICORE ARPEGGIATOR", t.accentSecondar
 drawPanel({ 646, 98, 620, 628 }, "PERFORMANCE MACROS (1 - 4)", t.accentTertiary);
 }
 }
-void WaeraAudioProcessorEditor::resized() {
+void BlitzAudioProcessorEditor::resized() {
     bankSelector.setBounds(302, 12, 185, 26); prevPresetBtn.setBounds(493, 12, 26, 26); presetSelector.setBounds(522, 12, 235, 26); nextPresetBtn.setBounds(760, 12, 26, 26);
     savePresetBtn.setBounds(794, 12, 106, 26); rescanBtn.setBounds(906, 12, 86, 26); skinSelector.setBounds(998, 12, 182, 26); openFolderBtn.setBounds(1186, 12, 80, 26);
 

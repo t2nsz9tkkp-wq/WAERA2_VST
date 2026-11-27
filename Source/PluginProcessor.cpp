@@ -1,17 +1,17 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-WaeraVoice::WaeraVoice(juce::AudioProcessorValueTreeState& apvts, WavetableBank& wtBank)
+BlitzVoice::BlitzVoice(juce::AudioProcessorValueTreeState& apvts, WavetableBank& wtBank)
     : state(apvts), bank(wtBank) {}
 
-void WaeraVoice::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void BlitzVoice::prepareToPlay(double sampleRate, int samplesPerBlock) {
     currentSampleRate = sampleRate;
     env1.setSampleRate(sampleRate); env2.setSampleRate(sampleRate); env3.setSampleRate(sampleRate);
     juce::dsp::ProcessSpec spec { sampleRate, (juce::uint32)samplesPerBlock, 1 };
     filter1L.prepare(spec); filter1R.prepare(spec); filter2L.prepare(spec); filter2R.prepare(spec);
 }
 
-float WaeraVoice::applyWarp(int mode, float p, float amt, float modSig) {
+float BlitzVoice::applyWarp(int mode, float p, float amt, float modSig) {
     switch (mode) {
         case 1: return p + modSig * amt * 0.45f;
         case 2: return p * (1.0f + amt * 3.0f);
@@ -20,7 +20,7 @@ float WaeraVoice::applyWarp(int mode, float p, float amt, float modSig) {
     }
 }
 
-void WaeraVoice::startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound*, int) {
+void BlitzVoice::startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound*, int) {
     noteVelocity = velocity;
     targetFreq = (float)juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
     float glide = state.getRawParameterValue("glide")->load();
@@ -35,12 +35,12 @@ void WaeraVoice::startNote(int midiNoteNumber, float velocity, juce::Synthesiser
     samplePosA = samplePosB = grainPhase = 0.0;
 }
 
-void WaeraVoice::stopNote(float, bool allowTailOff) {
+void BlitzVoice::stopNote(float, bool allowTailOff) {
     env1.noteOff(); env2.noteOff(); env3.noteOff();
     if (!allowTailOff || !env1.isActive()) clearCurrentNote();
 }
 
-void WaeraVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples) {
+void BlitzVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples) {
     if (!isVoiceActive() || bank.tables.empty()) return;
 
     bool onA = state.getRawParameterValue("oscA_on")->load() > 0.5f;
@@ -179,14 +179,14 @@ else outputBuffer.addSample(0, startSample + s, (outL + outR) * 0.5f * envGain);
 if (!env1.isActive()) { clearCurrentNote(); break; }
 }
 }
-WaeraAudioProcessor::WaeraAudioProcessor()
+BlitzAudioProcessor::BlitzAudioProcessor()
 : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
 apvts(*this, nullptr, "PARAMETERS", createParameterLayout()) {
 ensureDefaultAssetsExist(); reloadWavetables();
-for (int i = 0; i < 8; ++i) synth.addVoice(new WaeraVoice(apvts, wavetableBank));
-synth.addSound(new WaeraSound());
+for (int i = 0; i < 8; ++i) synth.addVoice(new BlitzVoice(apvts, wavetableBank));
+synth.addSound(new BlitzSound());
 }
-void WaeraAudioProcessor::loadSampleIntoOsc(int oscIdx, const juce::File& wavFile) {
+void BlitzAudioProcessor::loadSampleIntoOsc(int oscIdx, const juce::File& wavFile) {
     int newIdx = wavetableBank.loadSingleWavFile(wavFile, oscIdx);
     if (newIdx >= 0) {
         juce::String id = (oscIdx == 0) ? "oscA_wave" : (oscIdx == 1 ? "oscB_wave" : "oscC_wave");
@@ -195,11 +195,11 @@ void WaeraAudioProcessor::loadSampleIntoOsc(int oscIdx, const juce::File& wavFil
     }
 }
 
-void WaeraAudioProcessor::reloadWavetables() {
+void BlitzAudioProcessor::reloadWavetables() {
 wavetableBank.buildFactoryTables();
 wavetableBank.loadExternalWavetablesFromFolder(getRootUserDirectory().getChildFile("Wavetables"));
 }
-juce::AudioProcessorValueTreeState::ParameterLayout WaeraAudioProcessor::createParameterLayout() {
+juce::AudioProcessorValueTreeState::ParameterLayout BlitzAudioProcessor::createParameterLayout() {
 std::vector<std::unique_ptr<juce::RangedAudioParameter>> p;
 auto addF = [&](const char* id, const char* nm, float mn, float mx, float df) { p.push_back(std::make_unique<juce::AudioParameterFloat>(id, nm, mn, mx, df)); };
 auto addI = [&](const char* id, const char* nm, int mn, int mx, int df) { p.push_back(std::make_unique<juce::AudioParameterInt>(id, nm, mn, mx, df)); };
@@ -252,16 +252,16 @@ addF("arp_gate", "Arp Gate", 0.1f, 0.95f, 0.65f);
 for (int i = 1; i <= 4; ++i) addF(("macro" + juce::String(i)).toRawUTF8(), ("Macro " + juce::String(i)).toRawUTF8(), 0.0f, 1.0f, 0.0f);
 return { p.begin(), p.end() };
 }
-void WaeraAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void BlitzAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
 synth.setCurrentPlaybackSampleRate(sampleRate);
 for (int i = 0; i < synth.getNumVoices(); ++i)
-if (auto* v = dynamic_cast<WaeraVoice*>(synth.getVoice(i))) v->prepareToPlay(sampleRate, samplesPerBlock);
+if (auto* v = dynamic_cast<BlitzVoice*>(synth.getVoice(i))) v->prepareToPlay(sampleRate, samplesPerBlock);
 juce::dsp::ProcessSpec monoSpec { sampleRate, (juce::uint32)samplesPerBlock, 1 }, stereoSpec { sampleRate, (juce::uint32)samplesPerBlock, 2 };
 delayL.prepare(monoSpec); delayR.prepare(monoSpec); delayL.setDelay((float)(sampleRate * 0.214)); delayR.setDelay((float)(sampleRate * 0.285));
 chorus.prepare(stereoSpec); chorus.setCentreDelay(7.0f); chorus.setFeedback(0.25f); reverb.prepare(stereoSpec);
 }
-bool WaeraAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const { return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo(); }
-void WaeraAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+bool BlitzAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const { return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo(); }
+void BlitzAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
 buffer.clear();
 arp.processMidi(midiMessages, buffer.getNumSamples(), getSampleRate(), apvts.getRawParameterValue("arp_on")->load() > 0.5f,
 (int)apvts.getRawParameterValue("arp_mode")->load(), (int)apvts.getRawParameterValue("arp_rate")->load(), apvts.getRawParameterValue("arp_gate")->load());
@@ -304,33 +304,33 @@ juce::dsp::Reverb::Parameters rp; rp.roomSize = apvts.getRawParameterValue("reve
 reverb.setParameters(rp); juce::dsp::AudioBlock<float> block(buffer); reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 }
 }
-juce::File WaeraAudioProcessor::getRootUserDirectory() {
-auto dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("WAERA-2");
-dir.getChildFile("Banks/Factory Waera").createDirectory(); dir.getChildFile("Banks/User Custom").createDirectory();
+juce::File BlitzAudioProcessor::getRootUserDirectory() {
+auto dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Blitz-NPC");
+dir.getChildFile("Banks/Factory Blitz").createDirectory(); dir.getChildFile("Banks/User Custom").createDirectory();
 dir.getChildFile("Skins").createDirectory(); dir.getChildFile("Wavetables").createDirectory();
 return dir;
 }
-void WaeraAudioProcessor::savePresetToFile(const juce::String& bankName, const juce::String& presetName) {
+void BlitzAudioProcessor::savePresetToFile(const juce::String& bankName, const juce::String& presetName) {
 auto bankDir = getRootUserDirectory().getChildFile("Banks").getChildFile(bankName); bankDir.createDirectory();
-if (auto xml = apvts.copyState().createXml()) xml->writeTo(bankDir.getChildFile(presetName + ".waera"));
+if (auto xml = apvts.copyState().createXml()) xml->writeTo(bankDir.getChildFile(presetName + ".blitz"));
 }
-void WaeraAudioProcessor::loadPresetFromFile(const juce::File& presetFile) {
+void BlitzAudioProcessor::loadPresetFromFile(const juce::File& presetFile) {
 if (auto xml = juce::XmlDocument::parse(presetFile))
 if (xml->hasTagName(apvts.state.getType())) apvts.replaceState(juce::ValueTree::fromXml(*xml));
 }
-void WaeraAudioProcessor::ensureDefaultAssetsExist() {
+void BlitzAudioProcessor::ensureDefaultAssetsExist() {
 auto root = getRootUserDirectory(), skinsDir = root.getChildFile("Skins");
 auto s1 = skinsDir.getChildFile("Serum Cyber Cyan.json");
 if (!s1.existsAsFile()) s1.replaceWithText(R"({"bgDark":"ff111317","panelBg":"ff191d23","panelBorder":"ff2c333d","accentPrimary":"ff00e5ff","accentSecondary":"ffff2a85","accentTertiary":"ff2ee59d","textMain":"ffe6edf5"})");
 auto s2 = skinsDir.getChildFile("Harinezumi Neon Pink.json");
 if (!s2.existsAsFile()) s2.replaceWithText(R"({"bgDark":"ff161019","panelBg":"ff241929","panelBorder":"ff462d52","accentPrimary":"ffff3399","accentSecondary":"ff00ffcc","accentTertiary":"ffffcc00","textMain":"fffff0f8"})");
 }
-void WaeraAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
+void BlitzAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
 std::unique_ptr<juce::XmlElement> xml(apvts.copyState().createXml()); copyXmlToBinary(*xml, destData);
 }
-void WaeraAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
+void BlitzAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
 std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
 if (xmlState && xmlState->hasTagName(apvts.state.getType())) apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
-juce::AudioProcessorEditor* WaeraAudioProcessor::createEditor() { return new WaeraAudioProcessorEditor(*this); }
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new WaeraAudioProcessor(); }
+juce::AudioProcessorEditor* BlitzAudioProcessor::createEditor() { return new BlitzAudioProcessorEditor(*this); }
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new BlitzAudioProcessor(); }

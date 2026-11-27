@@ -1,0 +1,7 @@
+#!/bin/bash
+U=$(eval echo ~${SUDO_USER})
+mkdir -p "$U/Documents/Blitz-NPC/Banks" "$U/Documents/Blitz-NPC/Skins" "$U/Documents/Blitz-NPC/Wavetables"
+cp -Rf "/Library/Application Support/Blitz-NPC/Banks/"* "$U/Documents/Blitz-NPC/Banks/" 2>/dev/null || true
+cp -Rf "/Library/Application Support/Blitz-NPC/Skins/"* "$U/Documents/Blitz-NPC/Skins/" 2>/dev/null || true
+chown -R "${SUDO_USER}:staff" "$U/Documents/Blitz-NPC"
+exit 0
