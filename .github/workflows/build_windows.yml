@@ -1,0 +1,19 @@
+name: Build Windows Installer
+on: [push, workflow_dispatch]
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure & Build VST3
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64
+          cmake --build build --config Release -j 4
+      - name: Compile Windows Installer
+        run: |
+          choco install innosetup -y
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Installer\win\WAERA2_Setup.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WAERA-2-Windows-Installer
+          path: Installer/dist/WAERA-2_Windows_Setup.exe

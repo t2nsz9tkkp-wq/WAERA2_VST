@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PARAMETERS>
+  <PARAM id="master" value="0.75"/>
+  <PARAM id="oscA_wave" value="0"/>
+  <PARAM id="oscB_wave" value="0"/>
+  <PARAM id="oscC_wave" value="3"/>
+  <PARAM id="oscA_oct" value="0"/>
+  <PARAM id="oscB_oct" value="0"/>
+  <PARAM id="oscC_oct" value="-1"/>
+  <PARAM id="oscA_detune" value="21.26000022888184"/>
+  <PARAM id="oscB_semi" value="12"/>
+  <PARAM id="oscA_lvl" value="0.8499999642372131"/>
+  <PARAM id="oscB_lvl" value="0.5600000023841858"/>
+  <PARAM id="oscC_lvl" value="0.3799999952316284"/>
+  <PARAM id="cutoff" value="4464.0"/>
+  <PARAM id="reso" value="2.150000095367432"/>
+  <PARAM id="envAmt" value="2037.579956054688"/>
+  <PARAM id="att" value="0.01200000010430813"/>
+  <PARAM id="dec" value="0.3300000131130219"/>
+  <PARAM id="sus" value="0.8199999928474426"/>
+  <PARAM id="rel" value="0.08999999612569809"/>
+  <PARAM id="diode" value="43.04000091552734"/>
+  <PARAM id="pitchEnv" value="7"/>
+  <PARAM id="delayMix" value="0.2699999809265137"/>
+  <PARAM id="glide" value="0.07000000029802322"/>
+  <PARAM id="arp_gate"/>
+  <PARAM id="arp_mode"/>
+  <PARAM id="arp_on"/>
+  <PARAM id="arp_rate"/>
+  <PARAM id="chorus_mix"/>
+  <PARAM id="chorus_rate"/>
+  <PARAM id="crush_bits"/>
+  <PARAM id="crush_down"/>
+  <PARAM id="env2_att"/>
+  <PARAM id="env2_dec" value="0.4000000059604645"/>
+  <PARAM id="env2_rel"/>
+  <PARAM id="env2_sus"/>
+  <PARAM id="env3_att"/>
+  <PARAM id="env3_dec"/>
+  <PARAM id="env3_rel"/>
+  <PARAM id="env3_sus"/>
+  <PARAM id="flt1_type"/>
+  <PARAM id="flt2_cutoff"/>
+  <PARAM id="flt2_reso"/>
+  <PARAM id="flt2_route"/>
+  <PARAM id="flt2_type"/>
+  <PARAM id="lfo1_rate"/>
+  <PARAM id="lfo1_shape"/>
+  <PARAM id="lfo2_rate"/>
+  <PARAM id="lfo2_shape"/>
+  <PARAM id="lfo3_rate"/>
+  <PARAM id="lfo3_shape"/>
+  <PARAM id="lfo4_rate"/>
+  <PARAM id="lfo4_shape"/>
+  <PARAM id="macro1"/>
+  <PARAM id="macro2"/>
+  <PARAM id="macro3"/>
+  <PARAM id="macro4"/>
+  <PARAM id="mod1_amt"/>
+  <PARAM id="mod1_dst"/>
+  <PARAM id="mod1_src"/>
+  <PARAM id="mod2_amt"/>
+  <PARAM id="mod2_dst"/>
+  <PARAM id="mod2_src"/>
+  <PARAM id="mod3_amt"/>
+  <PARAM id="mod3_dst"/>
+  <PARAM id="mod3_src"/>
+  <PARAM id="mod4_amt"/>
+  <PARAM id="mod4_dst"/>
+  <PARAM id="mod4_src"/>
+  <PARAM id="mod5_amt"/>
+  <PARAM id="mod5_dst"/>
+  <PARAM id="mod5_src"/>
+  <PARAM id="mod6_amt"/>
+  <PARAM id="mod6_dst"/>
+  <PARAM id="mod6_src"/>
+  <PARAM id="mod7_amt"/>
+  <PARAM id="mod7_dst"/>
+  <PARAM id="mod7_src"/>
+  <PARAM id="mod8_amt"/>
+  <PARAM id="mod8_dst"/>
+  <PARAM id="mod8_src"/>
+  <PARAM id="oscA_on"/>
+  <PARAM id="oscA_unison"/>
+  <PARAM id="oscA_warpAmt"/>
+  <PARAM id="oscA_warpMode"/>
+  <PARAM id="oscA_wtPos"/>
+  <PARAM id="oscB_on"/>
+  <PARAM id="oscB_wtPos"/>
+  <PARAM id="oscC_on"/>
+  <PARAM id="ott_amt"/>
+  <PARAM id="reverb_mix"/>
+  <PARAM id="reverb_size"/>
+</PARAMETERS>

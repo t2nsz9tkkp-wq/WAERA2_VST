@@ -1,0 +1,4 @@
+build/
+Installer/dist/
+Installer/mac/*.pkg
+.DS_Store
