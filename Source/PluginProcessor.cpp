@@ -205,12 +205,12 @@ auto addF = [&](const char* id, const char* nm, float mn, float mx, float df) { 
 auto addI = [&](const char* id, const char* nm, int mn, int mx, int df) { p.push_back(std::make_unique<juce::AudioParameterInt>(id, nm, mn, mx, df)); };
 auto addB = [&](const char* id, const char* nm, bool df) { p.push_back(std::make_unique<juce::AudioParameterBool>(id, nm, df)); };
 addB("oscA_on", "Osc A On", true); addB("oscB_on", "Osc B On", true); addB("oscC_on", "Osc C On", true);
-p.push_back(std::make_unique<juce::AudioParameterChoice>("oscA_engMode", "Osc A Mode", juce::StringArray{"Wavetable", "Granular", "Sample"}, 0));
+p.push_back(std::make_unique<juce::AudioParameterChoice>("oscA_engMode", "Osc A Mode", juce::StringArray{"Wavetable", "Granular", "Sample", "Spectral"}, 0));
     addI("oscA_wave", "Osc A WT", 0, 64, 0); addF("oscA_oct", "Osc A Oct", -2.0f, 2.0f, 0.0f); addF("oscA_detune", "Osc A Detune", 0.0f, 50.0f, 18.0f);
 addF("oscA_lvl", "Osc A Level", 0.0f, 1.0f, 0.80f); addF("oscA_wtPos", "Osc A WT Pos", 0.0f, 1.0f, 0.25f); addI("oscA_unison", "Osc A Unison", 1, 7, 3);
 p.push_back(std::make_unique<juce::AudioParameterChoice>("oscA_warpMode", "Warp Mode", juce::StringArray{ "Warp: Off", "Warp: FM (Osc B)", "Warp: Hard Sync", "Warp: PWM Bend" }, 0));
 addF("oscA_warpAmt", "Warp Amt", 0.0f, 1.0f, 0.0f);
-p.push_back(std::make_unique<juce::AudioParameterChoice>("oscB_engMode", "Osc B Mode", juce::StringArray{"Wavetable", "Granular", "Sample"}, 0));
+p.push_back(std::make_unique<juce::AudioParameterChoice>("oscB_engMode", "Osc B Mode", juce::StringArray{"Wavetable", "Granular", "Sample", "Spectral"}, 0));
     addI("oscB_wave", "Osc B WT", 0, 64, 1); addF("oscB_oct", "Osc B Oct", -2.0f, 2.0f, 1.0f); addF("oscB_semi", "Osc B Semi", -12.0f, 12.0f, 0.0f);
 addF("oscB_lvl", "Osc B Level", 0.0f, 1.0f, 0.55f); addF("oscB_wtPos", "Osc B WT Pos", 0.0f, 1.0f, 0.40f);
 addI("oscC_wave", "Osc C WT", 0, 64, 3); addF("oscC_oct", "Osc C Oct", -2.0f, 1.0f, -1.0f); addF("glide", "Glide", 0.0f, 0.3f, 0.04f); addF("oscC_lvl", "Osc C Level", 0.0f, 1.0f, 0.50f);
@@ -302,35 +302,75 @@ float rMix = apvts.getRawParameterValue("reverb_mix")->load();
 if (rMix > 0.01f) {
 juce::dsp::Reverb::Parameters rp; rp.roomSize = apvts.getRawParameterValue("reverb_size")->load(); rp.wetLevel = rMix; rp.dryLevel = 1.0f; rp.damping = 0.35f; rp.width = 1.0f;
 reverb.setParameters(rp); juce::dsp::AudioBlock<float> block(buffer); reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
+    }
+    // Real 3-Band Master EQ (Low Shelf 140Hz, Mid Peak 1.2kHz, High Shelf 6.5kHz)
+    float eqL = apvts.getRawParameterValue("eq_low")->load();
+    float eqM = apvts.getRawParameterValue("eq_mid")->load();
+    float eqH = apvts.getRawParameterValue("eq_high")->load();
+    if (std::abs(eqL) > 0.05f || std::abs(eqM) > 0.05f || std::abs(eqH) > 0.05f) {
+        double sr = getSampleRate() > 0.0 ? getSampleRate() : 44100.0;
+        *eqLowL.coefficients = *juce::dsp::IIR::Coefficients<float>::makeLowShelf(sr, 140.0f, 0.707f, juce::Decibels::decibelsToGain(eqL));
+        *eqLowR.coefficients = *eqLowL.coefficients;
+        *eqMidL.coefficients = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(sr, 1200.0f, 0.9f, juce::Decibels::decibelsToGain(eqM));
+        *eqMidR.coefficients = *eqMidL.coefficients;
+        *eqHighL.coefficients = *juce::dsp::IIR::Coefficients<float>::makeHighShelf(sr, 6500.0f, 0.707f, juce::Decibels::decibelsToGain(eqH));
+        *eqHighR.coefficients = *eqHighL.coefficients;
+        auto* pL = buffer.getWritePointer(0);
+        auto* pR = (buffer.getNumChannels() > 1) ? buffer.getWritePointer(1) : pL;
+        for (int s = 0; s < buffer.getNumSamples(); ++s) {
+            pL[s] = eqHighL.processSample(eqMidL.processSample(eqLowL.processSample(pL[s])));
+            if (buffer.getNumChannels() > 1) pR[s] = eqHighR.processSample(eqMidR.processSample(eqLowR.processSample(pR[s])));
+        }
+    }
+
+    // Live Post-FX Stereo Peak Metering & Header Oscilloscope Feed
+    int nSmp = buffer.getNumSamples();
+    float peakL = buffer.getMagnitude(0, 0, nSmp);
+    float peakR = (buffer.getNumChannels() > 1) ? buffer.getMagnitude(1, 0, nSmp) : peakL;
+    meterLevelL.store(std::max(peakL, meterLevelL.load() * 0.85f));
+    meterLevelR.store(std::max(peakR, meterLevelR.load() * 0.85f));
+    const float* rdL = buffer.getReadPointer(0);
+    int wIdx = scopeWriteIdx.load();
+    for (int s = 0; s < nSmp; s += 2) {
+        scopeRing[(size_t)(wIdx & 255)] = rdL[s];
+        ++wIdx;
+    }
+    scopeWriteIdx.store(wIdx);
 }
-}
+
 juce::File BlitzAudioProcessor::getRootUserDirectory() {
-auto dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Blitz-NPC");
-dir.getChildFile("Banks/Factory Blitz").createDirectory(); dir.getChildFile("Banks/User Custom").createDirectory();
-dir.getChildFile("Skins").createDirectory(); dir.getChildFile("Wavetables").createDirectory();
-return dir;
+    auto dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Blitz-NPC");
+    dir.getChildFile("Banks/Factory Blitz").createDirectory(); dir.getChildFile("Banks/User Custom").createDirectory();
+    dir.getChildFile("Skins").createDirectory(); dir.getChildFile("Wavetables").createDirectory();
+    return dir;
 }
 void BlitzAudioProcessor::savePresetToFile(const juce::String& bankName, const juce::String& presetName) {
-auto bankDir = getRootUserDirectory().getChildFile("Banks").getChildFile(bankName); bankDir.createDirectory();
-if (auto xml = apvts.copyState().createXml()) xml->writeTo(bankDir.getChildFile(presetName + ".blitz"));
+    auto bankDir = getRootUserDirectory().getChildFile("Banks").getChildFile(bankName); bankDir.createDirectory();
+    if (auto xml = apvts.copyState().createXml()) xml->writeTo(bankDir.getChildFile(presetName + ".blitz"));
 }
 void BlitzAudioProcessor::loadPresetFromFile(const juce::File& presetFile) {
-if (auto xml = juce::XmlDocument::parse(presetFile))
-if (xml->hasTagName(apvts.state.getType())) apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    if (auto xml = juce::XmlDocument::parse(presetFile)) {
+        if (xml->hasTagName(apvts.state.getType())) {
+            currentBankName = presetFile.getParentDirectory().getFileName();
+            currentPresetName = presetFile.getFileNameWithoutExtension();
+            apvts.replaceState(juce::ValueTree::fromXml(*xml));
+            getRootUserDirectory().getChildFile("last_session.txt").replaceWithText(currentBankName + "\n" + currentPresetName + "\n" + currentSkinName);
+        }
+    }
 }
 void BlitzAudioProcessor::ensureDefaultAssetsExist() {
-auto root = getRootUserDirectory(), skinsDir = root.getChildFile("Skins");
-auto s1 = skinsDir.getChildFile("Serum Cyber Cyan.json");
-if (!s1.existsAsFile()) s1.replaceWithText(R"({"bgDark":"ff111317","panelBg":"ff191d23","panelBorder":"ff2c333d","accentPrimary":"ff00e5ff","accentSecondary":"ffff2a85","accentTertiary":"ff2ee59d","textMain":"ffe6edf5"})");
-auto s2 = skinsDir.getChildFile("Harinezumi Neon Pink.json");
-if (!s2.existsAsFile()) s2.replaceWithText(R"({"bgDark":"ff161019","panelBg":"ff241929","panelBorder":"ff462d52","accentPrimary":"ffff3399","accentSecondary":"ff00ffcc","accentTertiary":"ffffcc00","textMain":"fffff0f8"})");
+    auto root = getRootUserDirectory(), skinsDir = root.getChildFile("Skins");
+    auto s1 = skinsDir.getChildFile("Serum Cyber Cyan.json");
+    if (!s1.existsAsFile()) s1.replaceWithText(R"({"bgDark":"ff0d1015","panelBg":"ff151921","panelBorder":"ff28303d","accentPrimary":"ff00e5ff","accentSecondary":"ffff2a85","accentTertiary":"ff2ee59d","textMain":"ffeaf0f8"})");
+    auto s2 = skinsDir.getChildFile("Harinezumi Neon Pink.json");
+    if (!s2.existsAsFile()) s2.replaceWithText(R"({"bgDark":"ff130d17","panelBg":"ff1e1524","panelBorder":"ff3e274a","accentPrimary":"ffff3399","accentSecondary":"ff00ffcc","accentTertiary":"ffffcc00","textMain":"fffff0f8"})");
 }
 void BlitzAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
-std::unique_ptr<juce::XmlElement> xml(apvts.copyState().createXml()); copyXmlToBinary(*xml, destData);
+    std::unique_ptr<juce::XmlElement> xml(apvts.copyState().createXml()); copyXmlToBinary(*xml, destData);
 }
 void BlitzAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
-std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-if (xmlState && xmlState->hasTagName(apvts.state.getType())) apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    if (xmlState && xmlState->hasTagName(apvts.state.getType())) apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 juce::AudioProcessorEditor* BlitzAudioProcessor::createEditor() { return new BlitzAudioProcessorEditor(*this); }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new BlitzAudioProcessor(); }

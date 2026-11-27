@@ -134,6 +134,108 @@ private:
     SkinTheme& theme;
 };
 
+
+class StereoMeterDisplay : public juce::Component, private juce::Timer {
+public:
+    StereoMeterDisplay(BlitzAudioProcessor& proc, SkinTheme& themeRef) : processor(proc), theme(themeRef) { startTimerHz(30); }
+    void paint(juce::Graphics& g) override {
+        auto b = getLocalBounds().toFloat();
+        g.setColour(juce::Colour(0xff05070b)); g.fillRoundedRectangle(b, 5.0f);
+        g.setColour(theme.panelBorder.brighter(0.15f)); g.drawRoundedRectangle(b, 5.0f, 1.0f);
+
+        float rawL = juce::jlimit(0.0f, 1.2f, processor.meterLevelL.load());
+        float rawR = juce::jlimit(0.0f, 1.2f, processor.meterLevelR.load());
+        // Convert linear amplitude to perceptual dB meter scale (-48 dB to 0 dB)
+        auto toMeter = [](float amp) {
+            if (amp <= 0.0001f) return 0.0f;
+            float db = 20.0f * std::log10(amp);
+            return juce::jlimit(0.0f, 1.0f, (db + 48.0f) / 48.0f);
+        };
+        float mL = toMeter(rawL), mR = toMeter(rawR);
+        peakHoldL = (mL >= peakHoldL) ? mL : std::max(0.0f, peakHoldL - 0.015f);
+        peakHoldR = (mR >= peakHoldR) ? mR : std::max(0.0f, peakHoldR - 0.015f);
+        if (rawL >= 0.98f) clipHoldL = 24; else if (clipHoldL > 0) --clipHoldL;
+        if (rawR >= 0.98f) clipHoldR = 24; else if (clipHoldR > 0) --clipHoldR;
+
+        float topY = b.getY() + 9.0f;
+        float botY = b.getBottom() - 12.0f;
+        float h = botY - topY;
+        float colW = 8.0f;
+        float xL = b.getX() + 5.0f, xR = b.getRight() - 5.0f - colW;
+
+        // Clip warning LEDs at top
+        g.setColour(clipHoldL > 0 ? juce::Colour(0xffff2a4b) : juce::Colours::white.withAlpha(0.08f));
+        g.fillRoundedRectangle(xL, b.getY() + 3.0f, colW, 3.5f, 1.0f);
+        g.setColour(clipHoldR > 0 ? juce::Colour(0xffff2a4b) : juce::Colours::white.withAlpha(0.08f));
+        g.fillRoundedRectangle(xR, b.getY() + 3.0f, colW, 3.5f, 1.0f);
+
+        // Recessed bar wells
+        g.setColour(juce::Colours::black.withAlpha(0.65f));
+        g.fillRoundedRectangle(xL, topY, colW, h, 2.0f);
+        g.fillRoundedRectangle(xR, topY, colW, h, 2.0f);
+
+        // Live gradient level bars
+        juce::ColourGradient grad(theme.accentTertiary, 0, botY, theme.accentSecondary, 0, topY, false);
+        grad.addColour(0.72, theme.accentPrimary);
+        g.setGradientFill(grad);
+        if (mL > 0.005f) g.fillRoundedRectangle(xL, botY - mL * h, colW, mL * h, 2.0f);
+        if (mR > 0.005f) g.fillRoundedRectangle(xR, botY - mR * h, colW, mR * h, 2.0f);
+
+        // Floating peak-hold ticks
+        g.setColour(juce::Colours::white.withAlpha(0.85f));
+        if (peakHoldL > 0.02f) g.fillRect(xL, botY - peakHoldL * h, colW, 1.5f);
+        if (peakHoldR > 0.02f) g.fillRect(xR, botY - peakHoldR * h, colW, 1.5f);
+
+        // dB scale ticks between bars
+        g.setColour(juce::Colours::white.withAlpha(0.22f));
+        for (float frac : { 0.25f, 0.5f, 0.75f }) {
+            float ty = botY - frac * h;
+            g.drawHorizontalLine((int)ty, xL + colW + 1.5f, xR - 1.5f);
+        }
+
+        // L / R labels at bottom
+        g.setColour(theme.textMain.withAlpha(0.65f));
+        g.setFont(juce::FontOptions(8.5f, juce::Font::bold));
+        g.drawText("L", (int)xL - 1, (int)botY + 1, (int)colW + 2, 10, juce::Justification::centred);
+        g.drawText("R", (int)xR - 1, (int)botY + 1, (int)colW + 2, 10, juce::Justification::centred);
+    }
+    void timerCallback() override { repaint(); }
+private:
+    BlitzAudioProcessor& processor;
+    SkinTheme& theme;
+    float peakHoldL = 0.0f, peakHoldR = 0.0f;
+    int clipHoldL = 0, clipHoldR = 0;
+};
+
+
+class LiveHeaderScope : public juce::Component, private juce::Timer {
+public:
+    LiveHeaderScope(BlitzAudioProcessor& proc, SkinTheme& themeRef) : processor(proc), theme(themeRef) { startTimerHz(30); }
+    void paint(juce::Graphics& g) override {
+        auto b = getLocalBounds().toFloat();
+        g.setColour(juce::Colour(0xff05070b)); g.fillRoundedRectangle(b, 5.0f);
+        g.setColour(theme.panelBorder.brighter(0.15f)); g.drawRoundedRectangle(b, 5.0f, 1.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.05f));
+        g.drawHorizontalLine((int)b.getCentreY(), b.getX() + 3.0f, b.getRight() - 3.0f);
+
+        juce::Path p;
+        int startIdx = processor.scopeWriteIdx.load();
+        float midY = b.getCentreY();
+        for (int i = 0; i < 128; ++i) {
+            float smp = juce::jlimit(-1.0f, 1.0f, processor.scopeRing[(size_t)((startIdx + i * 2) & 255)]);
+            float x = b.getX() + 4.0f + ((float)i / 127.0f) * (b.getWidth() - 8.0f);
+            float y = midY - smp * (b.getHeight() * 0.42f);
+            if (i == 0) p.startNewSubPath(x, y); else p.lineTo(x, y);
+        }
+        g.setColour(theme.accentPrimary.withAlpha(0.28f)); g.strokePath(p, juce::PathStrokeType(3.5f));
+        g.setColour(theme.accentPrimary); g.strokePath(p, juce::PathStrokeType(1.5f));
+    }
+    void timerCallback() override { repaint(); }
+private:
+    BlitzAudioProcessor& processor;
+    SkinTheme& theme;
+};
+
 class BlitzAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::DragAndDropContainer, private juce::Timer {
 public:
     BlitzAudioProcessorEditor(BlitzAudioProcessor&);
@@ -151,13 +253,15 @@ private:
     juce::ToggleButton oscAOnBtn { "ON" }, oscBOnBtn { "ON" }, oscCOnBtn { "ON" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> oscAOnAtt, oscBOnAtt, oscCOnAtt;
 
-    juce::TextButton prevPresetBtn { "<" }, nextPresetBtn { ">" }, savePresetBtn { "SAVE .WAERA" }, rescanBtn { "RESCAN" }, openFolderBtn { "ASSETS" };
+    juce::TextButton prevPresetBtn { "<" }, nextPresetBtn { ">" }, savePresetBtn { "SAVE .BLITZ" }, rescanBtn { "RESCAN" }, openFolderBtn { "ASSETS" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oscAWaveAtt, oscBWaveAtt, oscCWaveAtt, oscAWarpAtt, oscAEngAtt, oscBEngAtt, noiseTypeAtt, flt1TypeAtt, flt2TypeAtt, flt2RouteAtt;
     std::unique_ptr<juce::FileChooser> fileChooser;
 
     WaveformDisplay scopeA, scopeB, scopeC;
     EnvelopeDisplay env1Graph, env2Graph;
     FilterCurveDisplay filterGraph;
+    StereoMeterDisplay stereoMeter;
+    LiveHeaderScope headerScope;
     std::array<std::unique_ptr<LFODisplay>, 4> lfoScopes;
 
     std::vector<std::unique_ptr<ModSourceBadge>> dragBadges;

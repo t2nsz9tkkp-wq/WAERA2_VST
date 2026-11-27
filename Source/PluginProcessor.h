@@ -63,6 +63,9 @@ public:
     void savePresetToFile(const juce::String& bankName, const juce::String& presetName);
     void loadPresetFromFile(const juce::File& presetFile);
     juce::String currentBankName { "01 - Blitz Leads (50)" }, currentPresetName, currentSkinName { "Serum Cyber Cyan" };
+    std::atomic<float> meterLevelL { 0.0f }, meterLevelR { 0.0f };
+    std::array<float, 256> scopeRing {};
+    std::atomic<int> scopeWriteIdx { 0 };
     WavetableBank wavetableBank;
     juce::AudioProcessorValueTreeState apvts;
 private:

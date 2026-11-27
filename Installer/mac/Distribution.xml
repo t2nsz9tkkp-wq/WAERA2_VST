@@ -13,9 +13,9 @@
     <choice id="com.blitzaudio.blitznpc.vst3" visible="false">
         <pkg-ref id="com.blitzaudio.blitznpc.vst3"/>
     </choice>
-    <pkg-ref id="com.blitzaudio.blitznpc.vst3" version="2.0.0" onConclusion="none">vst3.pkg</pkg-ref>
+    <pkg-ref id="com.blitzaudio.blitznpc.vst3" version="2.1.0" onConclusion="none">vst3.pkg</pkg-ref>
     <choice id="com.blitzaudio.blitznpc.assets" visible="false">
         <pkg-ref id="com.blitzaudio.blitznpc.assets"/>
     </choice>
-    <pkg-ref id="com.blitzaudio.blitznpc.assets" version="2.0.0" onConclusion="none">assets.pkg</pkg-ref>
+    <pkg-ref id="com.blitzaudio.blitznpc.assets" version="2.1.0" onConclusion="none">assets.pkg</pkg-ref>
 </installer-gui-script>
