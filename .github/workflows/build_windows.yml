@@ -17,7 +17,7 @@ jobs:
       - name: Compile Windows Installer
         run: |
           choco install innosetup -y
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Installer\win\WAERA2_Setup.iss
+          "C:\Program Files "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Installer\win\WAERA2_Setup.iss
       - uses: actions/upload-artifact@v4
         with:
           name: WAERA-2-Windows-Installer
