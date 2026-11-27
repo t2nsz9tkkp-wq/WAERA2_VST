@@ -18,8 +18,8 @@ jobs:
         shell: cmd
         run: |
           choco install innosetup -y
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Installer\win\WAERA2_Setup.iss
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" Installer\win\BlitzNPC_Setup.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: WAERA-2-Windows-Installer
-          path: Installer/dist/WAERA-2_Windows_Setup.exe
+          name: Blitz-NPC-Windows-Installer
+          path: Installer/dist/Blitz-NPC_Windows_Setup.exe
