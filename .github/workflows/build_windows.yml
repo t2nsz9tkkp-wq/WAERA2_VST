@@ -5,9 +5,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: juce-framework/JUCE
+          ref: 8.0.4
+          path: JUCE
       - name: Configure & Build VST3
         run: |
-          cmake -B build 
+          cmake -B build
           cmake --build build --config Release -j 4
       - name: Compile Windows Installer
         run: |
